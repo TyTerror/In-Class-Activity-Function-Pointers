@@ -1,16 +1,87 @@
-#include <stdio.h>
-#include <stdlib.h>
+#include<stdio.h>
+#include<unistd.h>
+#include<stdlib.h>
+#include<errno.h>
 
-/* IMPLEMENT ME: Declare your functions here */
-int add (int a, int b);
+#include "process.h"
+#include "util.h"
 
+#define DEBUG 0			//change this to 1 to enable verbose output
 
-int main (void)
-{
-	/* IMPLEMENT ME: Insert your algorithm here */
-
-	return 0;
+/**
+ * Signature for an function pointer that can compare
+ * You need to cast the input into its actual 
+ * type and then compare them according to your
+ * custom logic
+ */
+typedef int (*Comparer) (const void *a, const void *b);
+int my_comparer(const void *this, const void *that){
+/**
+ * compares 2 processes
+ * You can assume: 
+ * - Process ids will be unique
+ * - No 2 processes will have same arrival time
+ */
+	//TODO: IMPLEMENT ME!
+	Process *ptrOne = (Process *)this;
+	Process *ptrTwo = (Process *)that;
+	//if sorted based on priority, it should be descending order.
+	// 3 cases return 1,0,-1
+	//priorities are equal
+	if (ptrOne->priority == ptrTwo->priority){
+		return ptrOne->arrival_time - ptrTwo->arrival_time;
+	}
+		return ptrOne->priority - ptrTwo->priority;
 }
 
-/* IMPLEMENT ME: Define your functions here */
-int add (int a, int b) { printf ("Adding 'a' and 'b'\n"); return a + b; }
+
+int main(int argc, char *argv[]){
+	if (argc < 2){
+		fprintf(stderr, "Usage: ./func-ptr <input-file-path>\n");
+		fflush(stdout);
+		return 1;
+	}
+	/*******************/
+	/* Parse the input */
+	/*******************/
+	FILE *input_file = fopen(argv[1], "r");
+	if (!input_file){
+		fprintf(stderr, "Error: Invalid filepath\n");
+		fflush(stdout);
+		return 1;
+	}
+
+	Process *processes = parse_file(input_file);
+	/*******************/
+	/* sort the input  */
+	/*******************/
+	Comparer process_comparer = &my_comparer;
+
+
+#if DEBUG
+	for (int i = 0; i < P_SIZE; i++){
+		printf("%d (%d, %d) ",
+				processes[i].pid,
+				processes[i].priority, processes[i].arrival_time);
+	}
+	printf("\n");
+#endif
+
+	qsort(processes, P_SIZE, sizeof(Process), process_comparer);
+	/**************************/
+	/* print the sorted data  */
+	/**************************/
+	for (int i = 0; i < P_SIZE; i++){
+		printf("%d (%d, %d)\n",
+				processes[i].pid,
+				processes[i].priority, processes[i].arrival_time);
+	}
+	fflush(stdout);
+	fflush(stderr);
+	/************/
+	/* clean up */
+	/************/
+	free(processes);
+	fclose(input_file);
+	return 0;
+}
